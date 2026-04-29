@@ -1,4 +1,5 @@
 package com.example.backgammon;
+
 import android.content.Context;
 import java.util.HashSet;
 import java.util.Set;
@@ -64,6 +65,7 @@ public class GamePlay {
         this.db = db;
         this.context = context;
     }
+
     // ===============================
     // GETTERS
     // ===============================
@@ -131,6 +133,11 @@ public class GamePlay {
         if (!diceRolled) return;
         if (hasPiecesInBar(isWhiteTurn)) return;
 
+        if (point < 1 || point > 24) {
+            clearSelection();
+            return;
+        }
+
         Piece p = getTopPiece(point);
         if (p == null || p.isWhite() != isWhiteTurn) return;
 
@@ -151,6 +158,14 @@ public class GamePlay {
         selectedPoint = -1;
         selectedFromBar = true;
         calculateLegalMoves();
+    }
+
+    public void clearSelection() {
+        selectedPiece = null;
+        selectedPoint = -1;
+        selectedFromBar = false;
+        legalTargets.clear();
+        blockedTargets.clear();
     }
 
     public int getBarEntry(boolean white, int move) { return calculateBarEntry(white, move); }
@@ -233,7 +248,7 @@ public class GamePlay {
     }
 
     // ===============================
-    // BAR — bar[0]=שחור, bar[1]=לבן
+    // BAR
     // ===============================
     public boolean hasPiecesInBar(boolean white) {
         int idx = white ? 1 : 0;
@@ -254,12 +269,12 @@ public class GamePlay {
         if (blackBornOff == 15) { gameOver = true; winner = "BLACK WINS"; }
     }
 
-    // לבן נכנס 13-18, שחור נכנס 7-12
     private int calculateBarEntry(boolean white, int move) {
         return white ? 12 + move : 13 - move;
     }
 
     public Piece getTopPieceAtPoint(int point) {
+        if(point < 1 || point > 24) return null;
         Piece[] stack = board[point - 1];
         for (int i = stack.length - 1; i >= 0; i--)
             if (stack[i] != null) return stack[i];
@@ -330,7 +345,8 @@ public class GamePlay {
         }
         clearSelection();
 
-        if (!hasMovesLeft()) {
+        // ** התיקון הקריטי! גם אם יש קוביות (hasMovesLeft) אבל הלוח חסום (hasAnyMove) - נעביר תור **
+        if (!hasMovesLeft() || !hasAnyMove()) {
             endTurn();
         }
     }
@@ -338,6 +354,7 @@ public class GamePlay {
     private boolean useMove(int distance) {
         return useMoveRecursive(distance, remainingMoves);
     }
+
     public void resetGame() {
         for (int i = 0; i < 24; i++)
             for (int j = 0; j < 15; j++)
@@ -358,8 +375,9 @@ public class GamePlay {
         selectedFromBar = false;
         legalTargets.clear();
         blockedTargets.clear();
-        initPieces(); // ← זו השורה שצריך להוסיף
+        initPieces();
     }
+
     private boolean useMoveRecursive(int remaining, int[] moves) {
         if (remaining == 0) { updateDice(); return true; }
         for (int i = 0; i < moves.length; i++) {
@@ -397,7 +415,6 @@ public class GamePlay {
         if (farthest == -1) return;
         int farthestDistance = getBearOffDistance(farthest, white);
 
-        // 1. התאמה מדויקת — השחקן הנבחר תואם בדיוק לקוביה
         for (int i = 0; i < remainingMoves.length; i++) {
             if (remainingMoves[i] == distance) {
                 remainingMoves[i] = 0;
@@ -406,18 +423,17 @@ public class GamePlay {
                 if (white) whiteBornOff++; else blackBornOff++;
                 checkWinner();
                 clearSelection();
-                if (!hasMovesLeft()) endTurn();
+
+                // ** גם פה - הוספת התנאי שפותר את התקיעה בהוצאת אבנים **
+                if ((!hasMovesLeft() || !hasAnyMove()) && !gameOver) {
+                    endTurn();
+                }
                 return;
             }
         }
 
-        // 2. קוביה קטנה מהמרחק — מזיזים בתוך הבית בלבד (לא מוציאים)
-        // זה מטופל ע"י calculateLegalMoves הרגיל, לא bear-off
-
-        // 3. קוביה גדולה מהמרחק — מותר להוציא רק אם אין שחקן עם מרחק מדויק
-        //    ורק אם זה השחקן הכי רחוק
-        if (hasExactBearOffMove(white)) return; // יש התאמה מדויקת לשחקן אחר
-        if (selectedPoint != farthest) return;   // לא השחקן הכי רחוק
+        if (hasExactBearOffMove(white)) return;
+        if (selectedPoint != farthest) return;
 
         for (int i = 0; i < remainingMoves.length; i++) {
             if (remainingMoves[i] > farthestDistance) {
@@ -427,7 +443,10 @@ public class GamePlay {
                 if (white) whiteBornOff++; else blackBornOff++;
                 checkWinner();
                 clearSelection();
-                if (!hasMovesLeft()) endTurn();
+
+                if ((!hasMovesLeft() || !hasAnyMove()) && !gameOver) {
+                    endTurn();
+                }
                 return;
             }
         }
@@ -446,11 +465,9 @@ public class GamePlay {
 
         int distance = getBearOffDistance(selectedPoint, white);
 
-        // התאמה מדויקת
         for (int move : remainingMoves)
             if (move == distance) return true;
 
-        // overflow — רק אם השחקן הכי רחוק ואין התאמה מדויקת לאחר
         int farthest = getFarthestPoint(white);
         if (selectedPoint == farthest && !hasExactBearOffMove(white)) {
             int farthestDistance = getBearOffDistance(farthest, white);
@@ -461,7 +478,6 @@ public class GamePlay {
         return false;
     }
 
-    // בודק מהלכים בלי לשנות selectedPiece/selectedPoint
     public boolean hasAnyMove() {
         if (hasPiecesInBar(isWhiteTurn)) {
             for (int move : remainingMoves) {
@@ -533,7 +549,6 @@ public class GamePlay {
 
     private int getFarthestPoint(boolean white) {
         if (white) {
-            // לבן: הכי רחוק = נקודה 7
             for (int p = 7; p <= 12; p++) {
                 Piece top = getTopPiece(p);
                 if (top != null && top.isWhite()) {
@@ -541,7 +556,6 @@ public class GamePlay {
                 }
             }
         } else {
-            // שחור: הכי רחוק = נקודה 18
             for (int p = 18; p >= 13; p--) {
                 Piece top = getTopPiece(p);
                 if (top != null && !top.isWhite()) {
@@ -603,6 +617,7 @@ public class GamePlay {
     }
 
     private Piece getTopPiece(int point) {
+        if (point < 1 || point > 24) return null;
         for (int i = 14; i >= 0; i--)
             if (board[point - 1][i] != null) return board[point - 1][i];
         return null;
@@ -611,13 +626,5 @@ public class GamePlay {
     private boolean hasMovesLeft() {
         for (int m : remainingMoves) if (m != 0) return true;
         return false;
-    }
-
-    private void clearSelection() {
-        selectedPiece = null;
-        selectedPoint = -1;
-        selectedFromBar = false;
-        legalTargets.clear();
-        blockedTargets.clear();
     }
 }

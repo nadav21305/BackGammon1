@@ -1,0 +1,20 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp">
+
+    <Button
+        android:id="@+id/btnVsBot"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="שחק נגד הבוט"/>
+
+    <Button
+        android:id="@+id/btnVsPlayer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="שחק נגד שחקן אחר"
+        android:layout_marginTop="8dp"/>
+</LinearLayout>

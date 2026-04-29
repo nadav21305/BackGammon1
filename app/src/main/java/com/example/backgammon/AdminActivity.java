@@ -1,13 +1,14 @@
 package com.example.backgammon;
 
+import android.database.Cursor;
+import android.graphics.Color;
+import android.graphics.Typeface;
 import android.os.Bundle;
+import android.view.Gravity;
+import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
-import android.graphics.Color;
-import android.graphics.Typeface;
-import android.view.Gravity;
-import android.view.View;
 import androidx.appcompat.app.AppCompatActivity;
 
 public class AdminActivity extends AppCompatActivity {
@@ -18,6 +19,7 @@ public class AdminActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        // הגנה — רק admin יכול להיכנס
         if (!"admin".equals(CurrentUser.role)) {
             finish();
             return;
@@ -32,37 +34,63 @@ public class AdminActivity extends AppCompatActivity {
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.setPadding(40, 60, 40, 60);
 
+        // כותרת
         TextView title = new TextView(this);
         title.setText("Admin Panel");
-        title.setTextSize(32f);
+        title.setTextSize(30f);
         title.setTextColor(Color.parseColor("#e2b96f"));
         title.setTypeface(null, Typeface.BOLD);
         title.setGravity(Gravity.CENTER);
         title.setPadding(0, 0, 0, 40);
         layout.addView(title);
 
-        addSectionTitle(layout, "All Players");
+        // ===== טבלת משתמשים =====
+        addSectionTitle(layout, "All Users");
+        addTableHeader(layout, new String[]{"Username", "Role", "Wins", "Losses", "Games"});
 
-        android.database.Cursor cursor = db.getAllUsersWithStats();
-        while (cursor.moveToNext()) {
-            String username  = cursor.getString(cursor.getColumnIndexOrThrow("username"));
-            String role      = cursor.getString(cursor.getColumnIndexOrThrow("role"));
-            int wins         = cursor.getInt(cursor.getColumnIndexOrThrow("wins"));
-            int losses       = cursor.getInt(cursor.getColumnIndexOrThrow("losses"));
-            int totalGames   = cursor.getInt(cursor.getColumnIndexOrThrow("total_games"));
-            addPlayerRow(layout, username, role, wins, losses, totalGames);
+        Cursor usersCursor = db.getAllUsersWithStats();
+        while (usersCursor.moveToNext()) {
+            String username   = usersCursor.getString(usersCursor.getColumnIndexOrThrow("username"));
+            String role       = usersCursor.getString(usersCursor.getColumnIndexOrThrow("role"));
+            int wins          = usersCursor.getInt(usersCursor.getColumnIndexOrThrow("wins"));
+            int losses        = usersCursor.getInt(usersCursor.getColumnIndexOrThrow("losses"));
+            int totalGames    = usersCursor.getInt(usersCursor.getColumnIndexOrThrow("total_games"));
+
+            addTableRow(layout, new String[]{
+                    username, role,
+                    String.valueOf(wins),
+                    String.valueOf(losses),
+                    String.valueOf(totalGames)
+            }, "admin".equals(role));
         }
-        cursor.close();
+        usersCursor.close();
 
+        // ===== טבלת משחקים אחרונים =====
         addSectionTitle(layout, "Recent Games");
+        addTableHeader(layout, new String[]{"Player 1", "Player 2", "Winner", "Date"});
 
-        android.database.Cursor gamesCursor = db.getRecentGamesWithPlayers();
+        Cursor gamesCursor = db.getRecentGamesWithPlayers();
         while (gamesCursor.moveToNext()) {
             String p1     = gamesCursor.getString(gamesCursor.getColumnIndexOrThrow("player1"));
             String p2     = gamesCursor.getString(gamesCursor.getColumnIndexOrThrow("player2"));
             String winner = gamesCursor.getString(gamesCursor.getColumnIndexOrThrow("winner_name"));
             String date   = gamesCursor.getString(gamesCursor.getColumnIndexOrThrow("date"));
-            addGameRow(layout, p1, p2, winner, date);
+
+            // המרת timestamp לתאריך קריא
+            String dateFormatted = date;
+            try {
+                long ts = Long.parseLong(date);
+                java.text.SimpleDateFormat sdf =
+                        new java.text.SimpleDateFormat("dd/MM/yy HH:mm", java.util.Locale.getDefault());
+                dateFormatted = sdf.format(new java.util.Date(ts));
+            } catch (Exception ignored) {}
+
+            addTableRow(layout, new String[]{
+                    p1 != null ? p1 : "?",
+                    p2 != null ? p2 : "AI",
+                    winner != null ? winner : "?",
+                    dateFormatted
+            }, false);
         }
         gamesCursor.close();
 
@@ -73,95 +101,69 @@ public class AdminActivity extends AppCompatActivity {
     private void addSectionTitle(LinearLayout parent, String text) {
         TextView tv = new TextView(this);
         tv.setText(text);
-        tv.setTextSize(20f);
+        tv.setTextSize(18f);
         tv.setTextColor(Color.parseColor("#e2b96f"));
         tv.setTypeface(null, Typeface.BOLD);
-        tv.setPadding(0, 40, 0, 16);
+        tv.setPadding(0, 32, 0, 12);
         parent.addView(tv);
 
         View divider = new View(this);
-        divider.setBackgroundColor(Color.parseColor("#e2b96f"));
+        divider.setBackgroundColor(Color.parseColor("#333355"));
         LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, 2);
-        p.bottomMargin = 20;
+        p.bottomMargin = 16;
         divider.setLayoutParams(p);
         parent.addView(divider);
     }
 
-    private void addPlayerRow(LinearLayout parent, String username, String role,
-                              int wins, int losses, int totalGames) {
-        LinearLayout card = new LinearLayout(this);
-        card.setOrientation(LinearLayout.VERTICAL);
-        card.setBackgroundColor(Color.parseColor("#16213e"));
-        card.setPadding(30, 24, 30, 24);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+    private void addTableHeader(LinearLayout parent, String[] cols) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setBackgroundColor(Color.parseColor("#0f3460"));
+        row.setPadding(16, 14, 16, 14);
+        LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT);
-        lp.bottomMargin = 16;
-        card.setLayoutParams(lp);
+        rowLp.bottomMargin = 2;
+        row.setLayoutParams(rowLp);
 
-        TextView nameRow = new TextView(this);
-        nameRow.setText((username != null ? username : "Unknown") + "  [" + (role != null ? role : "player") + "]");
-        nameRow.setTextSize(16f);
-        nameRow.setTextColor("admin".equals(role)
-                ? Color.parseColor("#e2b96f")
-                : Color.WHITE);
-        nameRow.setTypeface(null, Typeface.BOLD);
-        card.addView(nameRow);
-
-        TextView stats = new TextView(this);
-        stats.setText("W: " + wins + "  L: " + losses + "  Total: " + totalGames);
-        stats.setTextSize(14f);
-        stats.setTextColor(Color.parseColor("#aaaaaa"));
-        stats.setPadding(0, 8, 0, 0);
-        card.addView(stats);
-
-        parent.addView(card);
+        for (String col : cols) {
+            TextView tv = new TextView(this);
+            tv.setText(col);
+            tv.setTextSize(13f);
+            tv.setTextColor(Color.parseColor("#e2b96f"));
+            tv.setTypeface(null, Typeface.BOLD);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0,
+                    LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+            tv.setLayoutParams(lp);
+            row.addView(tv);
+        }
+        parent.addView(row);
     }
 
-    private void addGameRow(LinearLayout parent, String p1, String p2,
-                            String winner, String date) {
-        LinearLayout card = new LinearLayout(this);
-        card.setOrientation(LinearLayout.VERTICAL);
-        card.setBackgroundColor(Color.parseColor("#16213e"));
-        card.setPadding(30, 24, 30, 24);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+    private void addTableRow(LinearLayout parent, String[] cols, boolean highlight) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setBackgroundColor(highlight
+                ? Color.parseColor("#1e3a5f")
+                : Color.parseColor("#16213e"));
+        row.setPadding(16, 12, 16, 12);
+        LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT);
-        lp.bottomMargin = 16;
-        card.setLayoutParams(lp);
+        rowLp.bottomMargin = 2;
+        row.setLayoutParams(rowLp);
 
-        // תיקון: בדיקת null לפני equals
-        String p1Name = (p1 != null) ? p1 : "Unknown";
-        String p2Name = (p2 != null) ? p2 : "Computer";
-
-        TextView players = new TextView(this);
-        players.setText(p1Name + "  vs  " + p2Name);
-        players.setTextSize(15f);
-        players.setTextColor(Color.WHITE);
-        players.setTypeface(null, Typeface.BOLD);
-        card.addView(players);
-
-        TextView winnerTv = new TextView(this);
-        winnerTv.setText("Winner: " + (winner != null ? winner : "N/A"));
-        winnerTv.setTextSize(13f);
-        winnerTv.setTextColor(Color.parseColor("#4caf50"));
-        winnerTv.setPadding(0, 6, 0, 0);
-        card.addView(winnerTv);
-
-        try {
-            long ts = Long.parseLong(date);
-            java.text.SimpleDateFormat sdf =
-                    new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault());
-            String formatted = sdf.format(new java.util.Date(ts));
-            TextView dateTv = new TextView(this);
-            dateTv.setText(formatted);
-            dateTv.setTextSize(12f);
-            dateTv.setTextColor(Color.parseColor("#888888"));
-            dateTv.setPadding(0, 4, 0, 0);
-            card.addView(dateTv);
-        } catch (Exception ignored) {}
-
-        parent.addView(card);
+        for (String col : cols) {
+            TextView tv = new TextView(this);
+            tv.setText(col != null ? col : "-");
+            tv.setTextSize(13f);
+            tv.setTextColor(Color.WHITE);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0,
+                    LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+            tv.setLayoutParams(lp);
+            row.addView(tv);
+        }
+        parent.addView(row);
     }
 }

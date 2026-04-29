@@ -77,6 +77,43 @@ public class ProfileActivity extends AppCompatActivity {
         }
         statsCursor.close();
 
+        // === כפתורי מצב משחק ===
+        addSectionTitle(layout, "Play");
+
+        // כפתור Play vs AI
+        Button playAiBtn = new Button(this);
+        playAiBtn.setText("Play vs Computer (AI)");
+        playAiBtn.setBackgroundColor(Color.parseColor("#4caf50"));
+        playAiBtn.setTextColor(Color.WHITE);
+        playAiBtn.setTypeface(null, Typeface.BOLD);
+        LinearLayout.LayoutParams aiLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, 120);
+        aiLp.topMargin = 16;
+        playAiBtn.setLayoutParams(aiLp);
+        playAiBtn.setOnClickListener(v -> {
+            GameSession.isAiGame = true;
+            CurrentUser.isWhitePlayer = true;
+            startActivity(new Intent(this, MainActivity.class));
+        });
+        layout.addView(playAiBtn);
+
+        // כפתור Play vs Friend (שני שחקנים על אותו מכשיר)
+        Button playLocalBtn = new Button(this);
+        playLocalBtn.setText("Play vs Friend (Local)");
+        playLocalBtn.setBackgroundColor(Color.parseColor("#1565c0"));
+        playLocalBtn.setTextColor(Color.WHITE);
+        playLocalBtn.setTypeface(null, Typeface.BOLD);
+        LinearLayout.LayoutParams localLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, 120);
+        localLp.topMargin = 12;
+        playLocalBtn.setLayoutParams(localLp);
+        playLocalBtn.setOnClickListener(v -> {
+            GameSession.isAiGame = false;
+            CurrentUser.isWhitePlayer = true;
+            startActivity(new Intent(this, MainActivity.class));
+        });
+        layout.addView(playLocalBtn);
+
         // === היסטוריית משחקים אישית ===
         addSectionTitle(layout, "My Games");
 
@@ -119,21 +156,26 @@ public class ProfileActivity extends AppCompatActivity {
             layout.addView(adminBtn);
         }
 
-        // כפתור Play
-        Button playBtn = new Button(this);
-        playBtn.setText("Play Game");
-        playBtn.setBackgroundColor(Color.parseColor("#4caf50"));
-        playBtn.setTextColor(Color.WHITE);
-        playBtn.setTypeface(null, Typeface.BOLD);
-        LinearLayout.LayoutParams playLp = new LinearLayout.LayoutParams(
+        // כפתור Logout
+        Button logoutBtn = new Button(this);
+        logoutBtn.setText("Logout");
+        logoutBtn.setBackgroundColor(Color.parseColor("#b71c1c"));
+        logoutBtn.setTextColor(Color.WHITE);
+        logoutBtn.setTypeface(null, Typeface.BOLD);
+        LinearLayout.LayoutParams logoutLp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, 120);
-        playLp.topMargin = 16;
-        playBtn.setLayoutParams(playLp);
-        playBtn.setOnClickListener(v -> {
-            startActivity(new Intent(this, MainActivity.class));
+        logoutLp.topMargin = 16;
+        logoutBtn.setLayoutParams(logoutLp);
+        logoutBtn.setOnClickListener(v -> {
+            CurrentUser.userId = -1;
+            CurrentUser.username = "";
+            CurrentUser.role = "player";
+            Intent intent = new Intent(this, LoginActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
             finish();
         });
-        layout.addView(playBtn);
+        layout.addView(logoutBtn);
 
         scroll.addView(layout);
         setContentView(scroll);
