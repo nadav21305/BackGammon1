@@ -23,11 +23,14 @@ public class MainActivity extends AppCompatActivity {
         GameSession.player1Id = CurrentUser.userId;
         GameSession.player2Id = -1; // בעתיד מולטיפלייר
 
-        GameSession.gameId = db.createGame(
+        // בדיקה שה-DB מחזיר מזהה תקין
+        long gameId = db.createGame(
                 GameSession.player1Id,
                 GameSession.player2Id,
                 -1
         );
+
+        GameSession.gameId = gameId;
 
         boardView.setGameSession(GameSession.gameId, db);
 

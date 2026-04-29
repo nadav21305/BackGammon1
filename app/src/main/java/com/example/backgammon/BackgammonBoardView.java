@@ -104,11 +104,19 @@ public class BackgammonBoardView extends View {
 
         if (gamePlay.isGameOver()) {
             drawWinnerScreen(c);
+
             if (!gameOverSent) {
                 gameOverSent = true;
                 showEndButtons = true;
-                if (listener != null) listener.onGameOver(gamePlay.getWinner());
+
+                if (listener != null) {
+                    listener.onGameOver(gamePlay.getWinner());
+                }
+
+                invalidate();
             }
+
+
         } else {
             drawTurnBanner(c);
         }
@@ -121,46 +129,89 @@ public class BackgammonBoardView extends View {
         String winnerText = gamePlay.getWinner();
         boolean whiteWon = winnerText.contains("WHITE");
 
+        // רקע כהה
         paint.setColor(Color.argb(200, 0, 0, 0));
         paint.setStyle(Paint.Style.FILL);
         c.drawRect(0, 0, getWidth(), getHeight(), paint);
 
+        // טקסט מנצח
         paint.setColor(whiteWon ? Color.WHITE : Color.BLACK);
         paint.setTextSize(110f);
         paint.setTextAlign(Paint.Align.CENTER);
         paint.setFakeBoldText(true);
-        paint.setShadowLayer(12f, 4f, 4f, whiteWon ? Color.DKGRAY : Color.LTGRAY);
-        c.drawText(winnerText, getWidth() / 2f, getHeight() / 2f - 80f, paint);
+        paint.setShadowLayer(
+                12f,
+                4f,
+                4f,
+                whiteWon ? Color.DKGRAY : Color.LTGRAY
+        );
+
+        c.drawText(
+                winnerText,
+                getWidth() / 2f,
+                getHeight() / 2f - 80f,
+                paint
+        );
+
         paint.setShadowLayer(0, 0, 0, 0);
         paint.setFakeBoldText(false);
 
-        if (showEndButtons) {
-            float btnW = 280f, btnH = 90f;
-            float gap = 30f;
-            float totalW = btnW * 2 + gap;
-            float startX = getWidth() / 2f - totalW / 2f;
-            float btnY = getHeight() / 2f + 20f;
+        if (!showEndButtons) return;
 
-            // NEW GAME
-            btnNewGame = new RectF(startX, btnY, startX + btnW, btnY + btnH);
-            paint.setColor(Color.parseColor("#4caf50"));
-            paint.setStyle(Paint.Style.FILL);
-            c.drawRoundRect(btnNewGame, 20f, 20f, paint);
-            paint.setColor(Color.WHITE);
-            paint.setTextSize(36f);
-            paint.setTextAlign(Paint.Align.CENTER);
-            c.drawText("NEW GAME", btnNewGame.centerX(), btnNewGame.centerY() + 13f, paint);
+        float btnW = 280f;
+        float btnH = 90f;
+        float gap = 30f;
 
-            // HOME
-            float homeX = startX + btnW + gap;
-            btnHome = new RectF(homeX, btnY, homeX + btnW, btnY + btnH);
-            paint.setColor(Color.parseColor("#e2b96f"));
-            paint.setStyle(Paint.Style.FILL);
-            c.drawRoundRect(btnHome, 20f, 20f, paint);
-            paint.setColor(Color.parseColor("#1a1a2e"));
-            c.drawText("HOME", btnHome.centerX(), btnHome.centerY() + 13f, paint);
-        }
+        float totalW = btnW * 2 + gap;
+        float startX = getWidth() / 2f - totalW / 2f;
+        float btnY = getHeight() / 2f + 30f;
+
+        // NEW GAME
+        btnNewGame = new RectF(
+                startX,
+                btnY,
+                startX + btnW,
+                btnY + btnH
+        );
+
+        paint.setColor(Color.parseColor("#4CAF50"));
+        paint.setStyle(Paint.Style.FILL);
+        c.drawRoundRect(btnNewGame, 20f, 20f, paint);
+
+        paint.setColor(Color.WHITE);
+        paint.setTextSize(36f);
+        paint.setTextAlign(Paint.Align.CENTER);
+
+        c.drawText(
+                "NEW GAME",
+                btnNewGame.centerX(),
+                btnNewGame.centerY() + 12f,
+                paint
+        );
+
+        // HOME
+        float homeX = startX + btnW + gap;
+
+        btnHome = new RectF(
+                homeX,
+                btnY,
+                homeX + btnW,
+                btnY + btnH
+        );
+
+        paint.setColor(Color.parseColor("#E2B96F"));
+        c.drawRoundRect(btnHome, 20f, 20f, paint);
+
+        paint.setColor(Color.BLACK);
+
+        c.drawText(
+                "HOME",
+                btnHome.centerX(),
+                btnHome.centerY() + 12f,
+                paint
+        );
     }
+
 
     // ===============================
     // TURN BANNER
@@ -211,14 +262,17 @@ public class BackgammonBoardView extends View {
 
         // כפתורי סיום משחק
         if (gamePlay.isGameOver()) {
+
             if (btnNewGame != null && btnNewGame.contains(x, y)) {
                 handleNewGame();
                 return true;
             }
+
             if (btnHome != null && btnHome.contains(x, y)) {
                 handleGoHome();
                 return true;
             }
+
             return true;
         }
 
@@ -322,17 +376,27 @@ public class BackgammonBoardView extends View {
 
         // Piece click
         int pointClicked = findPieceByTouch(x, y);
+
         if (pointClicked != -1) {
             highlightedPiece = pointClicked;
             gamePlay.selectPiece(pointClicked);
         } else {
             highlightedPiece = -1;
+            gamePlay.selectPiece(pointClicked);
         }
 
+// תיקון חשוב — רענון מיידי של המסך
         updateAllPiecePositions();
         invalidate();
+
         return true;
-    }
+    } // ← הוסף את הסוגר הזה כאן!
+
+    // ===============================
+    // BOT LOGIC
+    // ===============================
+
+
 
     // ===============================
     // BOT LOGIC
@@ -404,16 +468,25 @@ public class BackgammonBoardView extends View {
     // ===============================
     private void handleNewGame() {
         gamePlay.resetGame();
-        resetGameState();
 
-        // יצירת משחק חדש ב-DB
+        gameOverSent = false;
+        showEndButtons = false;
+
+        btnNewGame = null;
+        btnHome = null;
+
         if (db != null) {
             GameSession.gameId = db.createGame(
                     GameSession.player1Id,
                     GameSession.player2Id,
                     -1
             );
-            gamePlay.setGameContext(GameSession.gameId, db, getContext());
+
+            gamePlay.setGameContext(
+                    GameSession.gameId,
+                    db,
+                    getContext()
+            );
         }
 
         if (GameSession.isAiGame) {
@@ -422,18 +495,30 @@ public class BackgammonBoardView extends View {
 
         showTurnBanner = true;
         turnBannerStart = System.currentTimeMillis();
+
         updateAllPiecePositions();
         invalidate();
     }
 
     private void handleGoHome() {
         Context ctx = getContext();
-        Intent intent = new Intent(ctx, ProfileActivity.class);
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+
+        Intent intent = new Intent(
+                ctx,
+                ProfileActivity.class
+        );
+
+        intent.addFlags(
+                Intent.FLAG_ACTIVITY_CLEAR_TOP |
+                        Intent.FLAG_ACTIVITY_NEW_TASK
+        );
+
         ctx.startActivity(intent);
     }
 
-    // ===============================
+
+
+            // ===============================
     // DICE
     // ===============================
     private void startDiceAnimation() {

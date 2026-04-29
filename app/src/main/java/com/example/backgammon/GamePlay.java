@@ -139,11 +139,17 @@ public class GamePlay {
         }
 
         Piece p = getTopPiece(point);
-        if (p == null || p.isWhite() != isWhiteTurn) return;
+
+        // תיקון חשוב — אם לוחצים על אבן לא חוקית, ננקה בחירה קודמת
+        if (p == null || p.isWhite() != isWhiteTurn) {
+            clearSelection();
+            return;
+        }
 
         selectedPiece = p;
         selectedPoint = point;
         selectedFromBar = false;
+
         calculateLegalMoves();
     }
 
@@ -319,9 +325,8 @@ public class GamePlay {
         if (!legalTargets.contains(target)) return;
         if (getEnemyCount(target) >= 2) return;
 
-        int distance = selectedFromBar
-                ? calculateDistance(-1, target)
-                : calculateDistance(selectedPoint, target);
+        // תיקון חשוב — שימוש במרחק המדויק
+        int distance = getDistanceFromSelection(target);
 
         if (!useMove(distance)) return;
 
@@ -333,6 +338,7 @@ public class GamePlay {
 
         hitEnemy(target);
         placePiece(target, selectedPiece);
+
         if (db != null && gameId != -1 && context != null) {
             db.saveMove(
                     gameId,
@@ -343,9 +349,10 @@ public class GamePlay {
                     dice.getDie2()
             );
         }
+
         clearSelection();
 
-        // ** התיקון הקריטי! גם אם יש קוביות (hasMovesLeft) אבל הלוח חסום (hasAnyMove) - נעביר תור **
+        // תיקון חשוב — אם אין עוד מהלך חוקי, מעבירים תור
         if (!hasMovesLeft() || !hasAnyMove()) {
             endTurn();
         }
