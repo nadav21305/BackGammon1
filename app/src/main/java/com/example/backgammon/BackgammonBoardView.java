@@ -215,12 +215,6 @@ public class BackgammonBoardView extends View {
         invalidate();
     }
 
-    public void resetGameState() {
-        gameOverSent = false;
-        showEndButtons = false;
-        btnNewGame = null;
-        btnHome = null;
-    }
 
     private void drawTurnBanner(Canvas c) {
         if (!showTurnBanner) return;

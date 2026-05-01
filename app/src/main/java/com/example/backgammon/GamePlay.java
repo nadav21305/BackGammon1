@@ -21,8 +21,6 @@ public class GamePlay {
     private boolean selectedFromBar = false;
 
     public Piece getSelectedPiece() { return selectedPiece; }
-    public boolean isSelectedFromBar() { return selectedFromBar; }
-    public int getSelectedPoint() { return selectedPoint; }
 
     private int whiteBornOff = 0;
     private int blackBornOff = 0;
@@ -72,8 +70,6 @@ public class GamePlay {
     public Dice getDice() { return dice; }
     public boolean isDiceRolled() { return diceRolled; }
     public boolean isWhiteTurn() { return isWhiteTurn; }
-    public int getWhiteBornOff() { return whiteBornOff; }
-    public int getBlackBornOff() { return blackBornOff; }
     public boolean isGameOver() { return gameOver; }
     public String getWinner() { return winner; }
 
@@ -132,7 +128,7 @@ public class GamePlay {
 
         Piece p = getTopPiece(point);
 
-        // תיקון חשוב — אם לוחצים על אבן לא חוקית, ננקה בחירה קודמת
+
         if (p == null || p.isWhite() != isWhiteTurn) {
             clearSelection();
             return;
@@ -165,11 +161,6 @@ public class GamePlay {
         legalTargets.clear();
         blockedTargets.clear();
     }
-
-    public int getBarEntry(boolean white, int move) { return calculateBarEntry(white, move); }
-    public int getTargetPoint(int from, int move, boolean white) { return calculateTargetPoint(from, move, white); }
-    public int[][] getDiceOrdersForView() { return getDiceOrders(); }
-
 
     private void calculateLegalMoves() {
         legalTargets.clear();
@@ -253,12 +244,6 @@ public class GamePlay {
         return false;
     }
 
-    public boolean hasPiecesInBarSim(Piece[][] simBar, boolean white) {
-        int idx = white ? 1 : 0;
-        for (Piece p : simBar[idx])
-            if (p != null) return true;
-        return false;
-    }
 
     private void checkWinner() {
         if (whiteBornOff == 15) {
@@ -593,7 +578,6 @@ public class GamePlay {
         }
     }
 
-    public int[] getRemainingMoves() { return remainingMoves; }
 
     public int getDistanceFromSelection(int targetPoint) {
         int from = selectedFromBar ? -1 : selectedPoint;

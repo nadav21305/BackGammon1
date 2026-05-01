@@ -149,7 +149,7 @@ public class BotPlayer {
         if (isWhite && gamePlay.hasPiecesInBar(false)) score += 15;
         if (!isWhite && gamePlay.hasPiecesInBar(true)) score += 15;
 
-        // 🧠 RISK
+
         if (isPositionDangerous(to, isWhite)) score -= 50;
 
 
