@@ -9,7 +9,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DB_NAME = "backgammon.db";
-    private static final int DB_VERSION = 5; // עדכון גרסה
+    private static final int DB_VERSION = 5;
 
     public DatabaseHelper(Context context) {
         super(context, DB_NAME, null, DB_VERSION);
@@ -47,7 +47,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                         "dice2 INTEGER)"
         );
 
-        // יצירת admin ברירת מחדל
+
         db.execSQL(
                 "INSERT INTO users (username, password, role) VALUES ('admin', 'admin123', 'admin')"
         );
@@ -61,9 +61,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         onCreate(db);
     }
 
-    // =========================
-    // REGISTER
-    // =========================
+
     public boolean registerUser(String username, String password) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues v = new ContentValues();
@@ -74,9 +72,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return result != -1;
     }
 
-    // =========================
-    // LOGIN
-    // =========================
+
     public boolean loginUser(String username, String password) {
         SQLiteDatabase db = this.getReadableDatabase();
         Cursor c = db.rawQuery(
@@ -118,9 +114,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return "player";
     }
 
-    // =========================
-    // WIN / LOSS
-    // =========================
+
     public void addWin(int userId) {
         SQLiteDatabase db = this.getWritableDatabase();
         db.execSQL("UPDATE users SET wins = wins + 1 WHERE id = ?", new Object[]{userId});
@@ -139,9 +133,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         );
     }
 
-    // =========================
-    // GAME
-    // =========================
+
     public long createGame(int p1, int p2, int winner) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues v = new ContentValues();
@@ -152,9 +144,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return db.insert("games", null, v);
     }
 
-    // =========================
-    // MOVE
-    // =========================
+
     public void saveMove(long gameId, int playerId, int from, int to, int d1, int d2) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues v = new ContentValues();
@@ -167,11 +157,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.insert("moves", null, v);
     }
 
-    // =========================
-    // JOIN QUERIES — Admin
-    // =========================
 
-    // כל המשתמשים + מספר משחקים (JOIN בין users ל-games)
     public Cursor getAllUsersWithStats() {
         SQLiteDatabase db = this.getReadableDatabase();
         return db.rawQuery(
@@ -185,7 +171,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         );
     }
 
-    // משחקים אחרונים עם שמות שחקנים ומנצח (JOIN משולש)
+
     public Cursor getRecentGamesWithPlayers() {
         SQLiteDatabase db = this.getReadableDatabase();
         return db.rawQuery(
@@ -203,16 +189,11 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         );
     }
 
-    // =========================
-    // JOIN QUERIES — Profile
-    // =========================
-
-    // סטטיסטיקות אישיות + מספר משחקים
     public Cursor getUserStats(int userId) {
         SQLiteDatabase db = this.getReadableDatabase();
         return db.rawQuery(
                 "SELECT u.wins, u.losses, " +
-                        "COUNT(g.id) AS total_games " +
+                        "COUNT(CASE WHEN g.winner_id != -1 THEN 1 END) AS total_games " +
                         "FROM users u " +
                         "LEFT JOIN games g ON (g.player1_id = u.id OR g.player2_id = u.id) " +
                         "WHERE u.id = ?",
@@ -220,7 +201,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         );
     }
 
-    // היסטוריית משחקים אישית עם שם היריב והמנצח
+
     public Cursor getUserGames(int userId) {
         SQLiteDatabase db = this.getReadableDatabase();
         return db.rawQuery(

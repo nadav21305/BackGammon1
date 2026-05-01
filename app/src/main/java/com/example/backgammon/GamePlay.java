@@ -34,9 +34,7 @@ public class GamePlay {
 
     public GamePlay() { initPieces(); }
 
-    // ===============================
-    // INITIAL SETUP
-    // ===============================
+
     private void initPieces() {
         for (int i = 0; i < 24; i++)
             for (int j = 0; j < 15; j++)
@@ -66,9 +64,7 @@ public class GamePlay {
         this.context = context;
     }
 
-    // ===============================
-    // GETTERS
-    // ===============================
+
     public Piece[][] getBoard() { return board; }
     public Piece[][] getBar() { return bar; }
     public Set<Integer> getLegalTargets() { return legalTargets; }
@@ -89,9 +85,7 @@ public class GamePlay {
         return count;
     }
 
-    // ===============================
-    // DICE
-    // ===============================
+
     public void rollDice() {
         dice.roll();
         if (dice.getDie1() == dice.getDie2()) {
@@ -126,9 +120,7 @@ public class GamePlay {
         }
     }
 
-    // ===============================
-    // SELECTION
-    // ===============================
+
     public void selectPiece(int point) {
         if (!diceRolled) return;
         if (hasPiecesInBar(isWhiteTurn)) return;
@@ -178,9 +170,7 @@ public class GamePlay {
     public int getTargetPoint(int from, int move, boolean white) { return calculateTargetPoint(from, move, white); }
     public int[][] getDiceOrdersForView() { return getDiceOrders(); }
 
-    // ===============================
-    // LEGAL MOVES
-    // ===============================
+
     private void calculateLegalMoves() {
         legalTargets.clear();
         blockedTargets.clear();
@@ -220,13 +210,15 @@ public class GamePlay {
 
     private Piece[][] cloneBoard(Piece[][] original) {
         Piece[][] copy = new Piece[24][15];
-        for (int i = 0; i < 24; i++)
-            for (int j = 0; j < 15; j++)
+        for (int i = 0; i < 24; i++) {
+            for (int j = 0; j < 15; j++) {
                 if (original[i][j] != null) {
                     Piece p = new Piece();
                     p.setColor(original[i][j].isWhite() ? 1 : -1);
                     copy[i][j] = p;
                 }
+            }
+        }
         return copy;
     }
 
@@ -253,9 +245,7 @@ public class GamePlay {
         }
     }
 
-    // ===============================
-    // BAR
-    // ===============================
+
     public boolean hasPiecesInBar(boolean white) {
         int idx = white ? 1 : 0;
         for (Piece p : bar[idx])
@@ -271,8 +261,13 @@ public class GamePlay {
     }
 
     private void checkWinner() {
-        if (whiteBornOff == 15) { gameOver = true; winner = "WHITE WINS"; }
-        if (blackBornOff == 15) { gameOver = true; winner = "BLACK WINS"; }
+        if (whiteBornOff == 15) {
+            gameOver = true;
+            winner = "WHITE WINS";
+        } else if (blackBornOff == 15) {
+            gameOver = true;
+            winner = "BLACK WINS";
+        }
     }
 
     private int calculateBarEntry(boolean white, int move) {
@@ -318,26 +313,24 @@ public class GamePlay {
         return toIndex - fromIndex;
     }
 
-    // ===============================
-    // MOVE
-    // ===============================
     public void movePiece(int target) {
+        if (gameOver) return;
         if (!legalTargets.contains(target)) return;
         if (getEnemyCount(target) >= 2) return;
 
-        // תיקון חשוב — שימוש במרחק המדויק
         int distance = getDistanceFromSelection(target);
-
         if (!useMove(distance)) return;
 
+
         if (selectedFromBar) {
-            popFromBar(isWhiteTurn);
+            popFromBar(isWhiteTurn());
         } else {
             removeTopPiece(selectedPoint);
         }
 
         hitEnemy(target);
         placePiece(target, selectedPiece);
+
 
         if (db != null && gameId != -1 && context != null) {
             db.saveMove(
@@ -352,8 +345,11 @@ public class GamePlay {
 
         clearSelection();
 
-        // תיקון חשוב — אם אין עוד מהלך חוקי, מעבירים תור
-        if (!hasMovesLeft() || !hasAnyMove()) {
+
+        checkWinner();
+
+
+        if (!gameOver && (!hasMovesLeft() || !hasAnyMove())) {
             endTurn();
         }
     }
@@ -386,7 +382,10 @@ public class GamePlay {
     }
 
     private boolean useMoveRecursive(int remaining, int[] moves) {
-        if (remaining == 0) { updateDice(); return true; }
+        if (remaining == 0) {
+            updateDice();
+            return true;
+        }
         for (int i = 0; i < moves.length; i++) {
             if (moves[i] == 0 || moves[i] > remaining) continue;
             int m = moves[i];
@@ -403,9 +402,6 @@ public class GamePlay {
             if (m != 0) diceRolled = true;
     }
 
-    // ===============================
-    // BEAR OFF
-    // ===============================
     public void bearOffSelected(boolean white) {
         if (white != isWhiteTurn) return;
         if (hasPiecesInBar(white)) return;
@@ -431,7 +427,7 @@ public class GamePlay {
                 checkWinner();
                 clearSelection();
 
-                // ** גם פה - הוספת התנאי שפותר את התקיעה בהוצאת אבנים **
+
                 if ((!hasMovesLeft() || !hasAnyMove()) && !gameOver) {
                     endTurn();
                 }
@@ -525,6 +521,7 @@ public class GamePlay {
     }
 
     public void endTurn() {
+        if (gameOver) return;
         isWhiteTurn = !isWhiteTurn;
         diceRolled = false;
         clearSelection();
@@ -577,9 +574,7 @@ public class GamePlay {
         return white ? 13 - point : point - 12;
     }
 
-    // ===============================
-    // BOARD OPERATIONS
-    // ===============================
+
     private void placePiece(int point, Piece p) {
         for (int i = 0; i < board[point - 1].length; i++)
             if (board[point - 1][i] == null) { board[point - 1][i] = p; return; }

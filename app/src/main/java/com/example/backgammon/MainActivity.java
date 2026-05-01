@@ -17,13 +17,11 @@ public class MainActivity extends AppCompatActivity {
         db = new DatabaseHelper(this);
         boardView = findViewById(R.id.boardView);
 
-        // =========================
-        // יצירת משחק אמיתי
-        // =========================
-        GameSession.player1Id = CurrentUser.userId;
-        GameSession.player2Id = -1; // בעתיד מולטיפלייר
 
-        // בדיקה שה-DB מחזיר מזהה תקין
+        GameSession.player1Id = CurrentUser.userId;
+        GameSession.player2Id = -1;
+
+
         long gameId = db.createGame(
                 GameSession.player1Id,
                 GameSession.player2Id,

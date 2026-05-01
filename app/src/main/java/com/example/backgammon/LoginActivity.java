@@ -31,10 +31,10 @@ public class LoginActivity extends AppCompatActivity {
             if (db.loginUser(u, p)) {
                 CurrentUser.userId   = db.getUserId(u);
                 CurrentUser.username = u;
-                CurrentUser.role     = db.getUserRole(u); // שמירת התפקיד
+                CurrentUser.role     = db.getUserRole(u);
                 CurrentUser.isWhitePlayer = true;
 
-                // ניווט לפרופיל (לא ישר למשחק)
+
                 startActivity(new Intent(this, ProfileActivity.class));
                 finish();
             } else {

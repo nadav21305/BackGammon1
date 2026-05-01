@@ -19,7 +19,7 @@ public class AdminActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // הגנה — רק admin יכול להיכנס
+
         if (!"admin".equals(CurrentUser.role)) {
             finish();
             return;
@@ -34,7 +34,7 @@ public class AdminActivity extends AppCompatActivity {
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.setPadding(40, 60, 40, 60);
 
-        // כותרת
+
         TextView title = new TextView(this);
         title.setText("Admin Panel");
         title.setTextSize(30f);
@@ -44,7 +44,7 @@ public class AdminActivity extends AppCompatActivity {
         title.setPadding(0, 0, 0, 40);
         layout.addView(title);
 
-        // ===== טבלת משתמשים =====
+
         addSectionTitle(layout, "All Users");
         addTableHeader(layout, new String[]{"Username", "Role", "Wins", "Losses", "Games"});
 
@@ -65,7 +65,7 @@ public class AdminActivity extends AppCompatActivity {
         }
         usersCursor.close();
 
-        // ===== טבלת משחקים אחרונים =====
+
         addSectionTitle(layout, "Recent Games");
         addTableHeader(layout, new String[]{"Player 1", "Player 2", "Winner", "Date"});
 
@@ -76,7 +76,7 @@ public class AdminActivity extends AppCompatActivity {
             String winner = gamesCursor.getString(gamesCursor.getColumnIndexOrThrow("winner_name"));
             String date   = gamesCursor.getString(gamesCursor.getColumnIndexOrThrow("date"));
 
-            // המרת timestamp לתאריך קריא
+
             String dateFormatted = date;
             try {
                 long ts = Long.parseLong(date);

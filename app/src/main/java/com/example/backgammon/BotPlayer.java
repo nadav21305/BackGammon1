@@ -17,23 +17,18 @@ public class BotPlayer {
 
         boolean isWhite = gamePlay.isWhiteTurn();
 
-        // 1. אם יש אבנים בכלא — חייב להוציא קודם
         if (gamePlay.hasPiecesInBar(isWhite)) {
             return makeMoveFromBar(isWhite);
         }
 
-        // 2. תוספת חשובה! הבוט מנסה להוציא אבנים הביתה (Bear Off)
         if (tryBearOff(isWhite)) {
             return true;
         }
 
-        // 3. מחפש את המהלך הטוב ביותר מהלוח
         return makeBestBoardMove(isWhite);
     }
 
-    // ===============================
-    // יציאה מה-BAR
-    // ===============================
+
     private boolean makeMoveFromBar(boolean isWhite) {
         gamePlay.selectFromBar(isWhite);
 
@@ -53,9 +48,7 @@ public class BotPlayer {
         return true;
     }
 
-    // ===============================
-    // הוצאת אבנים (Bear Off) לבוט
-    // ===============================
+
     private boolean tryBearOff(boolean isWhite) {
         for (int point = 1; point <= 24; point++) {
             gamePlay.selectPiece(point);
@@ -68,9 +61,7 @@ public class BotPlayer {
         return false;
     }
 
-    // ===============================
-    // מהלך מהלוח
-    // ===============================
+
     private boolean makeBestBoardMove(boolean isWhite) {
         Piece[][] board = gamePlay.getBoard();
 
@@ -79,6 +70,8 @@ public class BotPlayer {
         int bestTo = -1;
 
         for (int point = 1; point <= 24; point++) {
+            gamePlay.clearSelection();
+
             Piece top = getTopPiece(board, point);
             if (top == null || top.isWhite() != isWhite) continue;
 
@@ -89,56 +82,146 @@ public class BotPlayer {
 
             for (int target : targets) {
                 int score = evaluateMove(point, target, isWhite);
+
                 if (score > bestScore) {
                     bestScore = score;
                     bestFrom = point;
                     bestTo = target;
                 }
             }
-
-            // זה מה שגרם לקריסה - עכשיו זה משתמש בפונקציה הציבורית הבטוחה!
-            gamePlay.clearSelection();
         }
 
-        if (bestFrom == -1 || bestTo == -1) return false;
+        if (bestFrom == -1 || bestTo == -1) {
+            gamePlay.clearSelection();
+            return false;
+        }
 
+        gamePlay.clearSelection();
         gamePlay.selectPiece(bestFrom);
-        if (gamePlay.getSelectedPiece() == null) return false;
+
+        if (gamePlay.getSelectedPiece() == null) {
+            gamePlay.clearSelection();
+            return false;
+        }
+
         gamePlay.movePiece(bestTo);
         return true;
     }
 
-    // ===============================
-    // פונקציית הערכה — לב ה-AI
-    // ===============================
+
     private int evaluateMove(int from, int to, boolean isWhite) {
         int score = 0;
         Piece[][] board = gamePlay.getBoard();
 
         int enemyCount = gamePlay.getEnemyCount(to);
-        if (enemyCount == 1) score += 50;
 
-        if (isWhite) {
-            if (to >= 7 && to <= 12) score += 20;
-        } else {
-            if (to >= 13 && to <= 18) score += 20;
+
+        if (enemyCount == 1) {
+            score += 80;
+
+            if (isPositionDangerous(to, isWhite)) {
+                score -= 40;
+            }
         }
 
-        int ownCount = countOwnPieces(board, to, isWhite);
-        if (ownCount == 1) score += 30;
+
+        int ownAfter = countOwnPieces(board, to, isWhite) + 1;
+        if (ownAfter >= 2) score += 40;
+
 
         int fromCount = countOwnPieces(board, from, isWhite);
-        if (fromCount == 1) score -= 25;
+        if (fromCount == 1) score -= 60;
+
+        if (ownAfter == 1) score -= 40;
+
 
         int[] path = isWhite ? whitePath() : blackPath();
         int fromIdx = getPathIndex(path, from);
         int toIdx = getPathIndex(path, to);
-        score += (toIdx - fromIdx) * 2;
+        score += (toIdx - fromIdx) * 3;
 
-        if (isWhite && gamePlay.hasPiecesInBar(false)) score += 5;
-        if (!isWhite && gamePlay.hasPiecesInBar(true)) score += 5;
+
+        if (isEndGame(isWhite)) {
+            score += (toIdx - fromIdx) * 5;
+        }
+
+
+        if (isWhite && gamePlay.hasPiecesInBar(false)) score += 15;
+        if (!isWhite && gamePlay.hasPiecesInBar(true)) score += 15;
+
+        // 🧠 RISK
+        if (isPositionDangerous(to, isWhite)) score -= 50;
+
+
+        score -= evaluateFutureRisk(to, isWhite);
+
+
+        int neighbors =
+                countOwnPieces(board, to - 1, isWhite) +
+                        countOwnPieces(board, to + 1, isWhite);
+        score += neighbors * 10;
+
+
+        if (hasStrongBlock(to, isWhite)) score += 60;
 
         return score;
+    }
+
+
+    private int evaluateFutureRisk(int to, boolean isWhite) {
+        int risk = 0;
+
+        for (int dice = 1; dice <= 6; dice++) {
+            int enemyFrom = isWhite ? to + dice : to - dice;
+
+            if (enemyFrom >= 1 && enemyFrom <= 24) {
+                int enemyCount = countOwnPieces(gamePlay.getBoard(), enemyFrom, !isWhite);
+                if (enemyCount > 0) {
+                    risk += 15;
+                }
+            }
+        }
+        return risk;
+    }
+
+
+    private boolean hasStrongBlock(int point, boolean isWhite) {
+        Piece[][] board = gamePlay.getBoard();
+
+        int count = 0;
+        for (int i = point; i <= point + 2 && i <= 24; i++) {
+            if (countOwnPieces(board, i, isWhite) >= 2) {
+                count++;
+            }
+        }
+        return count >= 2;
+    }
+
+    private boolean isEndGame(boolean isWhite) {
+        Piece[][] board = gamePlay.getBoard();
+
+        for (int i = 1; i <= 24; i++) {
+            for (Piece p : board[i - 1]) {
+                if (p != null && p.isWhite() == isWhite) {
+                    if (isWhite && i > 6) return false;
+                    if (!isWhite && i < 19) return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    private boolean isPositionDangerous(int point, boolean isWhite) {
+        Piece[][] board = gamePlay.getBoard();
+
+        for (int i = 1; i <= 24; i++) {
+            int enemyCount = countOwnPieces(board, i, !isWhite);
+            if (enemyCount == 0) continue;
+
+            int distance = Math.abs(i - point);
+            if (distance >= 1 && distance <= 6) return true;
+        }
+        return false;
     }
 
     private int chooseSafestTarget(List<Integer> targets, boolean isWhite) {
@@ -146,14 +229,7 @@ public class BotPlayer {
         int bestScore = Integer.MIN_VALUE;
 
         for (int target : targets) {
-            int score = 0;
-            Piece[][] board = gamePlay.getBoard();
-
-            int ownCount = countOwnPieces(board, target, isWhite);
-            score += ownCount * 20;
-
-            int[] path = isWhite ? whitePath() : blackPath();
-            score += getPathIndex(path, target);
+            int score = evaluateMove(target, target, isWhite);
 
             if (score > bestScore) {
                 bestScore = score;
@@ -164,13 +240,14 @@ public class BotPlayer {
     }
 
     private Piece getTopPiece(Piece[][] board, int point) {
-        if(point < 1 || point > 24) return null;
+        if (point < 1 || point > 24) return null;
         for (int i = 14; i >= 0; i--)
             if (board[point - 1][i] != null) return board[point - 1][i];
         return null;
     }
 
     private int countOwnPieces(Piece[][] board, int point, boolean isWhite) {
+        if (point < 1 || point > 24) return 0;
         int count = 0;
         for (Piece p : board[point - 1])
             if (p != null && p.isWhite() == isWhite) count++;
@@ -180,7 +257,7 @@ public class BotPlayer {
     private int getPathIndex(int[] path, int point) {
         for (int i = 0; i < path.length; i++)
             if (path[i] == point) return i;
-        return 0; // מניעת החזרת -1 שעושה בעיות מתמטיות
+        return 0;
     }
 
     private int[] whitePath() {

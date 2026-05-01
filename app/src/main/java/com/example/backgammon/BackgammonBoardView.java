@@ -69,7 +69,7 @@ public class BackgammonBoardView extends View {
         this.db = db;
         gamePlay.setGameContext(gameId, db, getContext());
 
-        // אם זה משחק AI — צור בוט
+
         if (GameSession.isAiGame) {
             botPlayer = new BotPlayer(gamePlay);
         }
@@ -122,19 +122,16 @@ public class BackgammonBoardView extends View {
         }
     }
 
-    // ===============================
-    // WINNER SCREEN + כפתורים
-    // ===============================
     private void drawWinnerScreen(Canvas c) {
         String winnerText = gamePlay.getWinner();
         boolean whiteWon = winnerText.contains("WHITE");
 
-        // רקע כהה
+
         paint.setColor(Color.argb(200, 0, 0, 0));
         paint.setStyle(Paint.Style.FILL);
         c.drawRect(0, 0, getWidth(), getHeight(), paint);
 
-        // טקסט מנצח
+
         paint.setColor(whiteWon ? Color.WHITE : Color.BLACK);
         paint.setTextSize(110f);
         paint.setTextAlign(Paint.Align.CENTER);
@@ -212,10 +209,6 @@ public class BackgammonBoardView extends View {
         );
     }
 
-
-    // ===============================
-    // TURN BANNER
-    // ===============================
     private void startTurnBanner() {
         showTurnBanner = true;
         turnBannerStart = System.currentTimeMillis();
@@ -250,9 +243,6 @@ public class BackgammonBoardView extends View {
         postInvalidateDelayed(16);
     }
 
-    // ===============================
-    // TOUCH
-    // ===============================
     @Override
     public boolean onTouchEvent(MotionEvent e) {
         if (e.getAction() != MotionEvent.ACTION_DOWN) return true;
@@ -260,26 +250,23 @@ public class BackgammonBoardView extends View {
         float x = e.getX();
         float y = e.getY();
 
-        // כפתורי סיום משחק
-        if (gamePlay.isGameOver()) {
 
+        if (gamePlay.isGameOver()) {
             if (btnNewGame != null && btnNewGame.contains(x, y)) {
                 handleNewGame();
                 return true;
             }
-
             if (btnHome != null && btnHome.contains(x, y)) {
                 handleGoHome();
                 return true;
             }
-
             return true;
         }
 
-        // אם תור הבוט — לא מקבלים קליקים
+
         if (GameSession.isAiGame && !gamePlay.isWhiteTurn()) return true;
 
-        // Roll Dice
+
         float btnWidth = 150f, btnHeight = 60f;
         float btnX = getWidth() / 2f - btnWidth / 2f;
         float btnY = getHeight() - btnHeight - 30f;
@@ -289,7 +276,6 @@ public class BackgammonBoardView extends View {
             startDiceAnimation();
             postDelayed(() -> {
                 if (beforeTurn != gamePlay.isWhiteTurn()) startTurnBanner();
-                // אם אחרי הקוביות זה תור הבוט — הבוט ישחק
                 triggerBotIfNeeded();
             }, 1300);
             highlightedPiece = -1;
@@ -298,10 +284,9 @@ public class BackgammonBoardView extends View {
             return true;
         }
 
-        // Bear Off Buttons
+
         float centerY = getHeight() / 2f;
         float buttonHalfWidth = 20f, buttonHalfHeight = 50f;
-
         float whiteX = horizontalOffset + 1f - buttonHalfWidth;
         if (x >= whiteX - buttonHalfWidth && x <= whiteX + buttonHalfWidth &&
                 y >= centerY - buttonHalfHeight && y <= centerY + buttonHalfHeight) {
@@ -316,7 +301,6 @@ public class BackgammonBoardView extends View {
             invalidate();
             return true;
         }
-
         float blackX = getWidth() - horizontalOffset - 1f - buttonHalfWidth;
         if (x >= blackX - buttonHalfWidth && x <= blackX + buttonHalfWidth &&
                 y >= centerY - buttonHalfHeight && y <= centerY + buttonHalfHeight) {
@@ -332,34 +316,23 @@ public class BackgammonBoardView extends View {
             return true;
         }
 
-        // BAR
-        if (isTouchOnBar(x, y, true)) {
-            if (gamePlay.isWhiteTurn() && gamePlay.hasPiecesInBar(true)) {
-                gamePlay.selectFromBar(true);
-                highlightedPiece = -1;
-                updateAllPiecePositions();
-                invalidate();
-                return true;
-            }
-        }
 
-        if (isTouchOnBar(x, y, false)) {
-            if (!gamePlay.isWhiteTurn() && gamePlay.hasPiecesInBar(false)) {
-                gamePlay.selectFromBar(false);
-                highlightedPiece = -1;
-                updateAllPiecePositions();
-                invalidate();
-                return true;
-            }
+        if (isTouchOnBar(x, y, true) && gamePlay.hasPiecesInBar(true)) {
+            gamePlay.selectFromBar(true);
+            highlightedPiece = -1;
+            updateAllPiecePositions();
+            invalidate();
+            return true;
         }
-
-        if (gamePlay.hasPiecesInBar(gamePlay.isWhiteTurn()) && gamePlay.getSelectedPiece() == null) {
+        if (isTouchOnBar(x, y, false) && gamePlay.hasPiecesInBar(false)) {
+            gamePlay.selectFromBar(false);
+            highlightedPiece = -1;
             updateAllPiecePositions();
             invalidate();
             return true;
         }
 
-        // Legal Target
+
         int target = findTargetByTouch(x, y);
         if (target != -1) {
             boolean beforeTurn = gamePlay.isWhiteTurn();
@@ -374,9 +347,8 @@ public class BackgammonBoardView extends View {
             return true;
         }
 
-        // Piece click
-        int pointClicked = findPieceByTouch(x, y);
 
+        int pointClicked = findPieceByTouch(x, y);
         if (pointClicked != -1) {
             highlightedPiece = pointClicked;
             gamePlay.selectPiece(pointClicked);
@@ -385,32 +357,19 @@ public class BackgammonBoardView extends View {
             gamePlay.selectPiece(pointClicked);
         }
 
-// תיקון חשוב — רענון מיידי של המסך
         updateAllPiecePositions();
         invalidate();
-
         return true;
-    } // ← הוסף את הסוגר הזה כאן!
-
-    // ===============================
-    // BOT LOGIC
-    // ===============================
+    }
 
 
-
-    // ===============================
-    // BOT LOGIC
-    // ===============================
     private void triggerBotIfNeeded() {
         if (!GameSession.isAiGame) return;
-        if (gamePlay.isWhiteTurn()) return; // תור השחקן
+        if (gamePlay.isWhiteTurn()) return;
         if (gamePlay.isGameOver()) return;
 
-        // הבוט מטיל קוביות ומשחק אחרי השהייה קצרה
         postDelayed(() -> {
             if (gamePlay.isGameOver() || gamePlay.isWhiteTurn()) return;
-
-            // הטלת קוביות לבוט
             startBotDiceAnimation();
         }, 600);
     }
@@ -433,7 +392,7 @@ public class BackgammonBoardView extends View {
                     diceAnimating = false;
                     gamePlay.rollDice();
                     invalidate();
-                    // הבוט מבצע מהלכים
+
                     runBotMoves();
                 }
             }
@@ -451,21 +410,22 @@ public class BackgammonBoardView extends View {
             }
 
             boolean moved = botPlayer.makeMove();
-            updateAllPiecePositions();
-            invalidate();
 
-            if (moved && !gamePlay.isGameOver() && !gamePlay.isWhiteTurn()) {
-                // יש עוד מהלכים לבוט
-                postDelayed(this::runBotMoves, 500);
-            } else if (gamePlay.isWhiteTurn()) {
-                startTurnBanner();
-            }
-        }, 400);
+
+            postDelayed(() -> {
+                updateAllPiecePositions();
+                invalidate();
+
+
+                if (moved && !gamePlay.isGameOver() && !gamePlay.isWhiteTurn()) {
+                    postDelayed(this::runBotMoves, 1000);
+                } else if (gamePlay.isWhiteTurn()) {
+                    startTurnBanner();
+                }
+            }, 1000);
+        }, 500);
     }
 
-    // ===============================
-    // NEW GAME / HOME
-    // ===============================
     private void handleNewGame() {
         gamePlay.resetGame();
 
@@ -516,11 +476,6 @@ public class BackgammonBoardView extends View {
         ctx.startActivity(intent);
     }
 
-
-
-            // ===============================
-    // DICE
-    // ===============================
     private void startDiceAnimation() {
         if (diceAnimating) return;
         diceLeftSide = !diceLeftSide;
@@ -573,7 +528,6 @@ public class BackgammonBoardView extends View {
     }
 
     private void drawDiceButton(Canvas c) {
-        // אם תור הבוט — לא מציגים כפתור
         if (GameSession.isAiGame && !gamePlay.isWhiteTurn()) return;
 
         paint.setStyle(Paint.Style.FILL);
@@ -589,9 +543,6 @@ public class BackgammonBoardView extends View {
         c.drawText("Roll Dice", x + btnWidth / 2f, y + btnHeight / 2f + 12f, paint);
     }
 
-    // ===============================
-    // BOARD DRAWING
-    // ===============================
     private void drawLegalTargets(Canvas c) {
         if (gamePlay.getSelectedPiece() == null) return;
         for (int point : gamePlay.getLegalTargets()) drawTargetCircle(c, point, Color.GREEN);
@@ -668,9 +619,7 @@ public class BackgammonBoardView extends View {
         paint.setStyle(Paint.Style.FILL);
     }
 
-    // ===============================
-    // HELPERS
-    // ===============================
+
     private int getOccupiedCount(int point) {
         int count = 0;
         for (Piece p : gamePlay.getBoard()[point - 1])

@@ -30,7 +30,7 @@ public class ProfileActivity extends AppCompatActivity {
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.setPadding(40, 60, 40, 60);
 
-        // כותרת
+
         TextView title = new TextView(this);
         title.setText("My Profile");
         title.setTextSize(30f);
@@ -40,7 +40,7 @@ public class ProfileActivity extends AppCompatActivity {
         title.setPadding(0, 0, 0, 32);
         layout.addView(title);
 
-        // שם משתמש
+
         TextView nameTv = new TextView(this);
         nameTv.setText(CurrentUser.username);
         nameTv.setTextSize(22f);
@@ -50,13 +50,13 @@ public class ProfileActivity extends AppCompatActivity {
         nameTv.setPadding(0, 0, 0, 8);
         layout.addView(nameTv);
 
-        // === כרטיס סטטיסטיקות ===
+
         Cursor statsCursor = db.getUserStats(CurrentUser.userId);
         if (statsCursor.moveToFirst()) {
             int wins   = statsCursor.getInt(statsCursor.getColumnIndexOrThrow("wins"));
             int losses = statsCursor.getInt(statsCursor.getColumnIndexOrThrow("losses"));
-            int total  = statsCursor.getInt(statsCursor.getColumnIndexOrThrow("total_games"));
-            float winRate = total > 0 ? (wins * 100f / total) : 0;
+            int totalGames = wins + losses;
+            float winRate = totalGames > 0 ? (wins * 100f / totalGames) : 0;
 
             LinearLayout statsCard = new LinearLayout(this);
             statsCard.setOrientation(LinearLayout.HORIZONTAL);
@@ -77,10 +77,10 @@ public class ProfileActivity extends AppCompatActivity {
         }
         statsCursor.close();
 
-        // === כפתורי מצב משחק ===
+
         addSectionTitle(layout, "Play");
 
-        // כפתור Play vs AI
+
         Button playAiBtn = new Button(this);
         playAiBtn.setText("Play vs Computer (AI)");
         playAiBtn.setBackgroundColor(Color.parseColor("#4caf50"));
@@ -97,7 +97,7 @@ public class ProfileActivity extends AppCompatActivity {
         });
         layout.addView(playAiBtn);
 
-        // כפתור Play vs Friend (שני שחקנים על אותו מכשיר)
+
         Button playLocalBtn = new Button(this);
         playLocalBtn.setText("Play vs Friend (Local)");
         playLocalBtn.setBackgroundColor(Color.parseColor("#1565c0"));
@@ -114,7 +114,7 @@ public class ProfileActivity extends AppCompatActivity {
         });
         layout.addView(playLocalBtn);
 
-        // === היסטוריית משחקים אישית ===
+
         addSectionTitle(layout, "My Games");
 
         Cursor gamesCursor = db.getUserGames(CurrentUser.userId);
@@ -140,7 +140,7 @@ public class ProfileActivity extends AppCompatActivity {
             layout.addView(empty);
         }
 
-        // כפתור Admin — רק אם admin
+
         if ("admin".equals(CurrentUser.role)) {
             Button adminBtn = new Button(this);
             adminBtn.setText("Admin Panel");
@@ -156,7 +156,7 @@ public class ProfileActivity extends AppCompatActivity {
             layout.addView(adminBtn);
         }
 
-        // כפתור Logout
+
         Button logoutBtn = new Button(this);
         logoutBtn.setText("Logout");
         logoutBtn.setBackgroundColor(Color.parseColor("#b71c1c"));
@@ -237,7 +237,7 @@ public class ProfileActivity extends AppCompatActivity {
         lp.bottomMargin = 14;
         card.setLayoutParams(lp);
 
-        // שורת תוצאה
+
         LinearLayout topRow = new LinearLayout(this);
         topRow.setOrientation(LinearLayout.HORIZONTAL);
 
@@ -260,7 +260,7 @@ public class ProfileActivity extends AppCompatActivity {
 
         card.addView(topRow);
 
-        // תאריך
+
         try {
             long ts = Long.parseLong(date);
             java.text.SimpleDateFormat sdf =
