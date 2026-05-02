@@ -17,7 +17,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         // יצירת ה-MediaPlayer והפעלתו
-        mediaPlayer = MediaPlayer.create(this, R.raw.vid);
+        mediaPlayer = MediaPlayer.create(this, R.raw.videoplayback);
         // ודא שיש קובץ בשם music.mp3 בתיקיית raw
         if (mediaPlayer != null) {
             mediaPlayer.setLooping(true); // לנגן בלולאה
