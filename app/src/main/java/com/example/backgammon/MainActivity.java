@@ -9,19 +9,18 @@ public class MainActivity extends AppCompatActivity {
 
     private DatabaseHelper db;
     private BackgammonBoardView boardView;
-    private MediaPlayer mediaPlayer; // הוספתי את ה-MediaPlayer
+    private MediaPlayer mediaPlayer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // יצירת ה-MediaPlayer והפעלתו
+
         mediaPlayer = MediaPlayer.create(this, R.raw.videoplayback);
-        // ודא שיש קובץ בשם music.mp3 בתיקיית raw
         if (mediaPlayer != null) {
-            mediaPlayer.setLooping(true); // לנגן בלולאה
-            mediaPlayer.start(); // להתחיל לנגן
+            mediaPlayer.setLooping(true);
+            mediaPlayer.start();
         }
 
         db = new DatabaseHelper(this);
@@ -57,7 +56,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        // שחרור ה-MediaPlayer כאשר הפעילות נסגרת
+
         if (mediaPlayer != null) {
             mediaPlayer.release();
             mediaPlayer = null;
