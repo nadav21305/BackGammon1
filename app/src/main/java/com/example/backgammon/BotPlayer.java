@@ -107,10 +107,16 @@ public class BotPlayer {
         int score = 0;
         Piece[][] board = gamePlay.getBoard();
 
-        int ownAtFrom    = countOwnPieces(board, from, isWhite);
-        int ownAtTarget  = countOwnPieces(board, to, isWhite);
-        int ownAfter     = ownAtTarget + 1;
-        int enemyAtTo    = gamePlay.getEnemyCount(to);
+        int ownAtFrom   = countOwnPieces(board, from, isWhite);
+        int ownAtTarget = countOwnPieces(board, to, isWhite);
+        int ownAfter    = ownAtTarget + 1;
+        int enemyAtTo   = gamePlay.getEnemyCount(to);
+
+        int[] path  = isWhite ? whitePath() : blackPath();
+        int fromIdx = getPathIndex(path, from);
+        int toIdx   = getPathIndex(path, to);
+
+        score += calculateRearBonus(from, isWhite, board, path);
 
         if (ownAfter == 2) {
             score += 120;
@@ -119,65 +125,68 @@ public class BotPlayer {
         }
 
         if (enemyAtTo == 1) {
-            int risk         = estimateExposureRisk(to, isWhite);
-            int enemyInBar   = countPiecesInBar(!isWhite);
+            int risk             = estimateExposureRisk(to, isWhite);
+            int enemyInBar       = countPiecesInBar(!isWhite);
             int enemyFarFromHome = countEnemyFarFromHome(isWhite);
-            int blockingBonus = ownAfter >= 2 ? 40 : 0;
+            int blockingBonus    = ownAfter >= 2 ? 40 : 0;
 
             int hitValue = 80 + blockingBonus;
-
-
-            if (enemyInBar > 0) hitValue += 20;
-
-
+            if (enemyInBar > 0)       hitValue += 20;
             if (enemyFarFromHome > 0) hitValue += 15;
-
-
             hitValue -= risk * 12;
 
-            if (hitValue > 0) {
-                score += hitValue;
-            }
+            if (hitValue > 0) score += hitValue;
         }
 
-        // עונש על פתיחת מקום שהיה מוגן
         if (ownAtFrom == 2) {
-
             score -= 80;
         }
-
 
         if (ownAfter == 1) {
             int risk = estimateExposureRisk(to, isWhite);
             score -= 70 + risk * 15;
         }
 
-        if (ownAtFrom == 1 && enemyAtTo != 1) {
-
-        }
-
-        int[] path   = isWhite ? whitePath() : blackPath();
-        int fromIdx  = getPathIndex(path, from);
-        int toIdx    = getPathIndex(path, to);
         score += (toIdx - fromIdx) * 2;
-
 
         boolean inHome = isWhite ? (to >= 7 && to <= 12) : (to >= 13 && to <= 18);
         if (inHome) score += 25;
 
-
         score += evaluatePrimeBonus(to, isWhite);
-
 
         if (isWhite  && gamePlay.hasPiecesInBar(false)) score += 10;
         if (!isWhite && gamePlay.hasPiecesInBar(true))  score += 10;
-
 
         if (isEndGame(isWhite)) {
             score += (toIdx - fromIdx) * 5;
         }
 
         return score;
+    }
+
+    private int calculateRearBonus(int from, boolean isWhite, Piece[][] board, int[] path) {
+        int fromIdx = getPathIndex(path, from);
+
+        int rearMostIdx = Integer.MAX_VALUE;
+        for (int p = 1; p <= 24; p++) {
+            if (countOwnPieces(board, p, isWhite) == 0) continue;
+            int idx = getPathIndex(path, p);
+            if (idx < rearMostIdx) rearMostIdx = idx;
+        }
+
+        if (rearMostIdx == Integer.MAX_VALUE) return 0;
+
+
+        if (fromIdx != rearMostIdx) return 0;
+
+        int distanceFromHome = 23 - fromIdx;
+        int bonus = 25 + distanceFromHome * 4;
+
+        if (countOwnPieces(board, from, isWhite) == 1) {
+            bonus += 35;
+        }
+
+        return bonus;
     }
 
     private int chooseBestBarTarget(List<Integer> targets, boolean isWhite) {
@@ -189,15 +198,11 @@ public class BotPlayer {
             Piece[][] board = gamePlay.getBoard();
 
             int ownCount = countOwnPieces(board, target, isWhite);
-
-
             if (ownCount == 1) score += 100;
             else if (ownCount >= 2) score += 50;
 
-
             int risk = estimateExposureRisk(target, isWhite);
             score -= risk * 12;
-
 
             int[] path = isWhite ? whitePath() : blackPath();
             score += getPathIndex(path, target);
@@ -213,7 +218,6 @@ public class BotPlayer {
     private int estimateExposureRisk(int point, boolean isWhite) {
         Piece[][] board = gamePlay.getBoard();
         int risk = 0;
-
         for (int dice = 1; dice <= 6; dice++) {
             int enemyFrom = isWhite ? point + dice : point - dice;
             if (enemyFrom < 1 || enemyFrom > 24) continue;
@@ -233,11 +237,9 @@ public class BotPlayer {
     private int countEnemyFarFromHome(boolean isWhite) {
         Piece[][] board = gamePlay.getBoard();
         int count = 0;
-
         for (int i = 1; i <= 24; i++) {
             for (Piece p : board[i - 1]) {
                 if (p == null || p.isWhite() == isWhite) continue;
-                // יריב רחוק מהבית שלו
                 boolean enemyFar = !isWhite
                         ? (i >= 13 && i <= 24)
                         : (i >= 1  && i <= 12);
@@ -249,9 +251,7 @@ public class BotPlayer {
 
     private int evaluatePrimeBonus(int newPoint, boolean isWhite) {
         Piece[][] board = gamePlay.getBoard();
-        int bonus = 0;
-
-        int consecutive = 0;
+        int consecutive    = 0;
         int maxConsecutive = 0;
 
         for (int offset = -5; offset <= 5; offset++) {
@@ -265,12 +265,12 @@ public class BotPlayer {
             }
         }
 
+        int bonus = 0;
         if (maxConsecutive >= 2) bonus += 20;
         if (maxConsecutive >= 3) bonus += 35;
         if (maxConsecutive >= 4) bonus += 60;
         if (maxConsecutive >= 5) bonus += 90;
-        if (maxConsecutive >= 6) bonus += 150; // prime מלא
-
+        if (maxConsecutive >= 6) bonus += 150;
         return bonus;
     }
 
