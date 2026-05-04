@@ -5,6 +5,7 @@ import android.view.Gravity;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 
+
 public class GameActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
